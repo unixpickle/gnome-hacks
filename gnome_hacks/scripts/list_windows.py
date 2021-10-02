@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-from typing import List
-
 from gnome_hacks.run_js import Evaluator
 from gnome_hacks.windows import list_windows
 
