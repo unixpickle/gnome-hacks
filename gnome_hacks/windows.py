@@ -82,17 +82,17 @@ def get_window_monitor_frame(e: Evaluator, id: int) -> Optional[Rect]:
     return None if result is None else Rect(**result)
 
 
-def move_window(e: Evaluator, id: int, x: int, y: int) -> bool:
+def move_window(e: Evaluator, id: int, x: int, y: int, user_op: bool = False) -> bool:
     code = """
     const actors = global.get_window_actors();
     let result = false;
     for (let i = 0; i < actors.length; i++) {
         const window = actors[i].get_meta_window();
         if (window.get_id() == window_id) {
-            window.move_frame(0, x, y);
+            window.move_frame(user_op, x, y);
             result = true;
         }
     }
     result;
     """
-    return e(code, window_id=id, x=x, y=y)
+    return e(code, window_id=id, x=x, y=y, user_op=user_op)
