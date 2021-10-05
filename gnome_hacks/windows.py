@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .run_js import Evaluator
+from .evaluator import Evaluator
 
 
 @dataclass

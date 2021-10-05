@@ -1,4 +1,4 @@
-from gnome_hacks.run_js import Evaluator
+from gnome_hacks.evaluator import Evaluator
 
 e = Evaluator()
 # Currently this doesn't seem to work.

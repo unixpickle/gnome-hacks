@@ -1,4 +1,4 @@
-from gnome_hacks.run_js import Evaluator
+from gnome_hacks.evaluator import Evaluator
 from gnome_hacks.keyboard import KeyEvent, simulate_key_events
 from gnome_hacks.keysyms import KeyVal
 
