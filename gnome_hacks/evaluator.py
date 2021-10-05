@@ -47,7 +47,7 @@ class Evaluator(GObject.Object):
             return None
         return json.loads(result)
 
-    def call_promise(
+    def call_async(
         self, script: str, timeout_ms: int = 2000, poll_interval: int = 50, **kwargs
     ) -> Any:
         """

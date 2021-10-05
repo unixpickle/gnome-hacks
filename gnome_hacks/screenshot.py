@@ -43,4 +43,4 @@ def capture_screenshot(
         });
     });
     """
-    return bytes(e.call_promise(code, include_cursor=include_cursor, **kwargs))
+    return bytes(e.call_async(code, include_cursor=include_cursor, **kwargs))
