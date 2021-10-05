@@ -46,6 +46,8 @@ class Evaluator(GObject.Object):
             raise EvaluatorJavaScriptError(result)
         if raw:
             return result
+        elif not result:
+            return None
         return json.loads(result)
 
 
