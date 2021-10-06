@@ -3,7 +3,7 @@ import random
 import time
 from typing import Any
 
-from gi.repository import GLib, GObject, Gio
+from gi.repository import Gio, GLib, GObject
 
 
 class Evaluator(GObject.Object):
