@@ -1,3 +1,4 @@
+import base64
 import time
 
 from .evaluator import Evaluator
@@ -22,25 +23,23 @@ def capture_screenshot(
 
     code = """
     const Screenshot = imports.gi.Shell.Screenshot;
+    const GLib = imports.gi.GLib;
     const Gio = imports.gi.Gio;
     return await new Promise((resolve, reject) => {
         const ss = new Screenshot();
         const output = Gio.MemoryOutputStream.new_resizable()
+
         ss.screenshot(include_cursor, output, (_, async_result) => {
             try {
                 ss.screenshot_finish(async_result);
                 output.close(Gio.Cancellable.get_current());
                 const data = output.steal_as_bytes();
-                const arr = imports.byteArray.fromGBytes(data);
-                const result = [];
-                for (let i = 0; i < arr.length; i++) {
-                    result.push(arr[i]);
-                }
-                resolve(result);
+                const encoded = GLib.base64_encode(data.get_data());
+                resolve(encoded);
             } catch (e) {
                 reject(e);
             }
         });
     });
     """
-    return bytes(e.call_async(code, include_cursor=include_cursor, **kwargs))
+    return base64.b64decode(e.call_async(code, include_cursor=include_cursor, **kwargs))
