@@ -108,7 +108,9 @@ class EvaluatorJavaScriptError(Exception):
     An error thrown when GNOME's JavaScript engine fails to execute a script.
     """
 
-    pass
+    def __init__(self, msg: str):
+        super().__init__(msg)
+        self.message = msg
 
 
 class EvaluatorPromiseTimeoutError(Exception):
