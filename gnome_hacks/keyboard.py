@@ -26,7 +26,6 @@ def simulate_key_events(e: Evaluator, *events: KeyEvent):
             dev.notify_key(0, e.key, state);
         }
     });
-    Clutter.KEY_3
     """
     for evt in events:
         if sum(x is not None for x in [evt.key, evt.keyval]) != 1:
