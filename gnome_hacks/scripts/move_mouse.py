@@ -1,10 +1,6 @@
 from gnome_hacks.evaluator import Evaluator
+from gnome_hacks.pointer import move_pointer, click_pointer
 
 e = Evaluator()
-# Currently this doesn't seem to work.
-# Based on https://github.com/GNOME/mutter/blob/main/src/tests/clutter/performance/test-common.h
-code = """
-    const Clutter = imports.gi.Clutter;
-    Clutter.get_default_backend().get_default_seat().warp_pointer(400, 400);
-"""
-print(e(code, raw=True))
+move_pointer(e, x=100, y=100)
+# click_pointer(e, 1)
