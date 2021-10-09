@@ -29,7 +29,7 @@ def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerBut
     const GLib = imports.gi.GLib;
 
     const seat = Clutter.get_default_backend().get_default_seat();
-    const dev = seat.create_virtual_device(Clutter.InputDeviceType.CLUTTER_POINTER_DEVICE);
+    const dev = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
 
     const waitPromise = (ms) => {
         return new Promise((resolve, reject) => {

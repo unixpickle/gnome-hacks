@@ -17,12 +17,7 @@ def simulate_key_events(e: Evaluator, *events: KeyEvent):
     code = """
     const Clutter = imports.gi.Clutter;
     const seat = Clutter.get_default_backend().get_default_seat();
-    let dtype = Clutter.InputDeviceType.CLUTTER_KEYBOARD_DEVICE;
-    if ('undefined' == typeof dtype) {
-        // GNOME 3.36
-        dtype = Clutter.InputDeviceType.KEYBOARD_DEVICE;
-    }
-    const dev = seat.create_virtual_device(dtype);
+    const dev = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
     events.forEach((e) => {
         const state = e.pressed ? Clutter.KeyState.PRESSED : Clutter.KeyState.RELEASED;
         if (e.keyval != null) {
