@@ -1,6 +1,7 @@
 from gnome_hacks.evaluator import Evaluator
-from gnome_hacks.pointer import move_pointer, click_pointer
+from gnome_hacks.pointer import PointerButton, PointerMove, simulate_pointer_events
 
 e = Evaluator()
-move_pointer(e, x=100, y=100)
-# click_pointer(e, 1)
+simulate_pointer_events(
+    e, PointerMove(100, 100), PointerButton(True), PointerButton(False)
+)
