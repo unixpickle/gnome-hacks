@@ -3,5 +3,5 @@ from gnome_hacks.pointer import PointerButton, PointerMove, simulate_pointer_eve
 
 e = Evaluator()
 simulate_pointer_events(
-    e, PointerMove(100, 100), PointerButton(True), PointerButton(False)
+    e, PointerMove(10, 10), PointerButton(True), PointerButton(False)
 )

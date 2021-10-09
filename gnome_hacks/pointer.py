@@ -8,9 +8,10 @@ from .evaluator import Evaluator
 class PointerMove:
     x: Union[int, float]
     y: Union[int, float]
+    delay_ms: int = 100
 
     def encode_pointer_event(self) -> Dict[str, Any]:
-        return dict(move=(self.x, self.y))
+        return dict(move=dict(x=self.x, y=self.y, delay_ms=self.delay_ms))
 
 
 @dataclass
@@ -30,9 +31,9 @@ def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerBut
     const seat = Clutter.get_default_backend().get_default_seat();
     const dev = seat.create_virtual_device(Clutter.InputDeviceType.CLUTTER_POINTER_DEVICE);
 
-    const waitPromise = () => {
+    const waitPromise = (ms) => {
         return new Promise((resolve, reject) => {
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => resolve(null));
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => resolve(null));
         });
     };
 
@@ -45,21 +46,17 @@ def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerBut
                 e.button.pressed ? Clutter.ButtonState.PRESSED : Clutter.ButtonState.RELEASED,
             );
         } else if (e.move) {
-            seat.warp_pointer(e.move.x, e.move.y);
+            dev.notify_absolute_motion(0, e.move.x, e.move.y);
 
-            // For some reason we can't click right after
-            // calling warp_pointer.
-            await waitPromise();
-
-            // For some reason this sends the pointer to (0,0) and
-            // breaks the trackpad until the next warp_pointer().
-            // The touchscreen still works though.
-            // dev.notify_absolute_motion(0, e.move.x, e.move.y);
+            // For some reason, some click events don't work if they are
+            // directly after a mouse movement, so mouse movements can have
+            // a delay before them.
+            await waitPromise(e.move.delay_ms);
         }
     }
     """
-    num_moves = sum(isinstance(x, PointerMove) for x in events)
-    delay = 2000 + 100 * num_moves
+    total_delay = sum(x.delay_ms if isinstance(x, PointerMove) else 0 for x in events)
+    delay = 2000 + total_delay
     e.call_async(
         code, timeout_ms=2000 + delay, events=[x.encode_pointer_event() for x in events]
     )
