@@ -59,7 +59,8 @@ class Evaluator(GObject.Object):
             "const _waitCtx = {status: 0};"
             "global[_waitName] = _waitCtx;"
             "(async function(){" + wrapped_script + "})().then((result)=>{"
-            "_waitCtx.result=result; _waitCtx.status=1;}).catch((err)=>{"
+            "_waitCtx.result=(typeof result === 'undefined' ? null : result);"
+            "_waitCtx.status=1;}).catch((err)=>{"
             "_waitCtx.error=''+err; _waitCtx.status=2;});"
             """
             // Cleanup global object if the call times out.
