@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Union
 
 from .evaluator import Evaluator
+from ._utils import reusable_device_expr
 
 
 @dataclass
@@ -24,12 +25,14 @@ class PointerButton:
 
 
 def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerButton]):
-    code = """
+    code = (
+        """
     const Clutter = imports.gi.Clutter;
     const GLib = imports.gi.GLib;
 
-    const seat = Clutter.get_default_backend().get_default_seat();
-    const dev = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
+    const dev = """
+        + reusable_device_expr("POINTER_DEVICE")
+        + """;
 
     const waitPromise = (ms) => {
         return new Promise((resolve, reject) => {
@@ -55,6 +58,7 @@ def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerBut
         }
     }
     """
+    )
     total_delay = sum(x.delay_ms if isinstance(x, PointerMove) else 0 for x in events)
     delay = 2000 + total_delay
     e.call_async(

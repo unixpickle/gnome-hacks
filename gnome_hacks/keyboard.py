@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .evaluator import Evaluator
+from ._utils import reusable_device_expr
 
 
 @dataclass
@@ -14,10 +15,12 @@ class KeyEvent:
 
 
 def simulate_key_events(e: Evaluator, *events: KeyEvent):
-    code = """
+    code = (
+        """
     const Clutter = imports.gi.Clutter;
-    const seat = Clutter.get_default_backend().get_default_seat();
-    const dev = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+    const dev = """
+        + reusable_device_expr("KEYBOARD_DEVICE")
+        + """;
     events.forEach((e) => {
         const state = e.pressed ? Clutter.KeyState.PRESSED : Clutter.KeyState.RELEASED;
         if (e.keyval != null) {
@@ -27,6 +30,7 @@ def simulate_key_events(e: Evaluator, *events: KeyEvent):
         }
     });
     """
+    )
     for evt in events:
         if sum(x is not None for x in [evt.key, evt.keyval]) != 1:
             raise ValueError(
