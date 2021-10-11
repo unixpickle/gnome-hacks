@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from .evaluator import Evaluator
 from ._utils import reusable_device_expr
+from .evaluator import Evaluator
 
 
 @dataclass
