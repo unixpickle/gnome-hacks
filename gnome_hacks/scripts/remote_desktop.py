@@ -22,9 +22,68 @@ def index():
     <!doctype html>
     <html>
         <head>
+            <style>
+            html, body {
+                text-align: center;
+            }
+
+            .screenshot {
+                max-width: 90%;
+                max-height: 90%;
+            }
+            </style>
         </head>
         <body>
-            TODO: a UI for controlling the screen.
+            <script>
+            const REFRESH_RATE = 1000;
+            let CUR_SCREENSHOT = null;
+
+            function sleepAsync(time) {
+                return new Promise((resolve, reject) => {
+                    if (time <= 0) {
+                        resolve(null);
+                    } else {
+                        setTimeout(() => resolve(null), time);
+                    }
+                });
+            }
+
+            function loadScreenshotAsync() {
+                return new Promise((resolve, reject) => {
+                    const img = document.createElement('img');
+                    img.onload = () => resolve(img);
+                    img.onerror = (err) => reject(err);
+                    img.src = '/screenshot?timestamp=' + (new Date().getTime());
+                });
+            }
+
+            function showScreenshot(img) {
+                img.className = 'screenshot';
+                if (CUR_SCREENSHOT != null) {
+                    document.body.insertBefore(img, CUR_SCREENSHOT);
+                    document.body.removeChild(CUR_SCREENSHOT);
+                } else {
+                    document.body.appendChild(img);
+                }
+                CUR_SCREENSHOT = img;
+            }
+
+            async function refreshLoop() {
+                while (true) {
+                    const lastTime = new Date().getTime();
+                    try {
+                        const result = await loadScreenshotAsync();
+                        showScreenshot(result);
+                        const curTime = new Date().getTime();
+                        await sleepAsync(REFRESH_RATE + lastTime - curTime);
+                    } catch (e) {
+                        await sleepAsync(1000);
+                        continue;
+                    }
+                }
+            }
+            refreshLoop().then(() => null);
+            </script>
         </body>
     </html>
     """
