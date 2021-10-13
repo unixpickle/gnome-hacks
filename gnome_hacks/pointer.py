@@ -24,7 +24,9 @@ class PointerButton:
         return dict(button=dict(pressed=self.pressed, button=self.button))
 
 
-def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerButton]):
+def simulate_pointer_events(
+    e: Evaluator, *events: Union[PointerMove, PointerButton], timeout_ms=2000
+):
     code = (
         """
     const Clutter = imports.gi.Clutter;
@@ -60,7 +62,9 @@ def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerBut
     """
     )
     total_delay = sum(x.delay_ms if isinstance(x, PointerMove) else 0 for x in events)
-    delay = 2000 + total_delay
+    delay = total_delay
     e.call_async(
-        code, timeout_ms=2000 + delay, events=[x.encode_pointer_event() for x in events]
+        code,
+        timeout_ms=timeout_ms + delay,
+        events=[x.encode_pointer_event() for x in events],
     )
