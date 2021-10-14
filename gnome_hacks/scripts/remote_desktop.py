@@ -41,6 +41,27 @@ def index():
             const REFRESH_RATE = 1000;
             let CUR_SCREENSHOT = null;
 
+            let MOVING = false;
+            let NEXT_MOVE = null;
+
+            async function moveMouse(x, y) {
+                if (MOVING) {
+                    NEXT_MOVE = [x, y];
+                    return;
+                }
+                MOVING = true;
+                try {
+                    await fetch('/mouse/move?x=' + x + '&y=' + y);
+                } catch (e) {
+                }
+                MOVING = false;
+                if (NEXT_MOVE) {
+                    const m = NEXT_MOVE;
+                    NEXT_MOVE = null;
+                    moveMouse(m[0], m[1]);
+                }
+            }
+
             function sleepAsync(time) {
                 return new Promise((resolve, reject) => {
                     if (time <= 0) {
@@ -61,6 +82,7 @@ def index():
             }
 
             function showScreenshot(img) {
+                const width = img.width;
                 img.className = 'screenshot';
                 if (CUR_SCREENSHOT != null) {
                     document.body.insertBefore(img, CUR_SCREENSHOT);
@@ -69,6 +91,16 @@ def index():
                     document.body.appendChild(img);
                 }
                 CUR_SCREENSHOT = img;
+                img.onmousemove = (e) => {
+                    const rect = img.getBoundingClientRect();
+                    const scale = width / img.offsetWidth;
+                    const x = Math.round(scale * (e.clientX - rect.left));
+                    const y = Math.round(scale * (e.clientY - rect.top));
+                    moveMouse(x, y);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                };
             }
 
             async function refreshLoop() {
