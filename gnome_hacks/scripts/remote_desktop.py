@@ -7,6 +7,7 @@ from threading import Lock
 
 from flask import Flask, Response, request
 from gnome_hacks.evaluator import Evaluator
+from gnome_hacks.keyboard import KeyEvent, simulate_key_events
 from gnome_hacks.pointer import PointerButton, PointerMove, simulate_pointer_events
 from gnome_hacks.screenshot import capture_screenshot
 from PIL import Image
@@ -117,6 +118,15 @@ def press_mouse():
     pressed = request.args.get("pressed", "0") == "1"
     with lock:
         simulate_pointer_events(evaluator, PointerButton(pressed), timeout_ms=TIMEOUT)
+    return "ok"
+
+
+@app.route("/keyboard")
+def keyboard():
+    keyval = int(request.args.get("keyval", ""))
+    pressed = request.args.get("pressed", "0") == "1"
+    with lock:
+        simulate_key_events(evaluator, KeyEvent(pressed, keyval=keyval), timeout_ms=TIMEOUT)
     return "ok"
 
 

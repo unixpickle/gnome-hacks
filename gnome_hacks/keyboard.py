@@ -14,7 +14,7 @@ class KeyEvent:
     key: Optional[int] = None  # hardware key code
 
 
-def simulate_key_events(e: Evaluator, *events: KeyEvent):
+def simulate_key_events(e: Evaluator, *events: KeyEvent, **kwargs):
     code = (
         """
     const Clutter = imports.gi.Clutter;
@@ -39,4 +39,5 @@ def simulate_key_events(e: Evaluator, *events: KeyEvent):
     e(
         code,
         events=[dict(pressed=x.pressed, key=x.key, keyval=x.keyval) for x in events],
+        **kwargs,
     )
