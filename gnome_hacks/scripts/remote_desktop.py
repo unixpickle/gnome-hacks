@@ -3,6 +3,7 @@ Work-in-progress remote desktop web application.
 """
 
 import io
+import json
 from threading import Lock
 
 from flask import Flask, Response, request
@@ -41,24 +42,25 @@ def index():
             const REFRESH_RATE = 1000;
             let CUR_SCREENSHOT = null;
 
-            let MOVING = false;
-            let NEXT_MOVE = null;
+            let RUNNING_EVENT = false;
+            let EVENT_QUEUE = [];
 
-            async function moveMouse(x, y) {
-                if (MOVING) {
-                    NEXT_MOVE = [x, y];
+            async function runEvents(events) {
+                if (RUNNING_EVENT) {
+                    events.forEach((e) => EVENT_QUEUE.push(e));
                     return;
                 }
-                MOVING = true;
+                RUNNING_EVENT = true;
+                const data = encodeURIComponent(JSON.stringify(events));
                 try {
-                    await fetch('/mouse/move?x=' + x + '&y=' + y);
+                    await fetch('/input?events=' + data);
                 } catch (e) {
                 }
-                MOVING = false;
-                if (NEXT_MOVE) {
-                    const m = NEXT_MOVE;
-                    NEXT_MOVE = null;
-                    moveMouse(m[0], m[1]);
+                RUNNING_EVENT = false;
+                if (EVENT_QUEUE.length > 0) {
+                    const e = EVENT_QUEUE;
+                    EVENT_QUEUE = [];
+                    runEvents(e);
                 }
             }
 
@@ -81,8 +83,19 @@ def index():
                 });
             }
 
-            function showScreenshot(img) {
+            function mouseCoordFn(img) {
                 const width = img.width;
+                return (e) => {
+                    const rect = img.getBoundingClientRect();
+                    const scale = width / img.offsetWidth;
+                    const x = Math.round(scale * (e.clientX - rect.left));
+                    const y = Math.round(scale * (e.clientY - rect.top));
+                    return {x: x, y: y};
+                };
+            }
+
+            function showScreenshot(img) {
+                const coordFn = mouseCoordFn(img);
                 img.className = 'screenshot';
                 if (CUR_SCREENSHOT != null) {
                     document.body.insertBefore(img, CUR_SCREENSHOT);
@@ -92,11 +105,25 @@ def index():
                 }
                 CUR_SCREENSHOT = img;
                 img.onmousemove = (e) => {
-                    const rect = img.getBoundingClientRect();
-                    const scale = width / img.offsetWidth;
-                    const x = Math.round(scale * (e.clientX - rect.left));
-                    const y = Math.round(scale * (e.clientY - rect.top));
-                    moveMouse(x, y);
+                    runEvents([{mousemove: coordFn(e)}]);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                };
+                img.onmousedown = (e) => {
+                    runEvents([
+                        {mousemove: coordFn(e)},
+                        {mousebutton: {pressed: true}},
+                    ]);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                };
+                img.onmouseup = (e) => {
+                    runEvents([
+                        {mousemove: coordFn(e)},
+                        {mousebutton: {pressed: false}},
+                    ]);
                     e.preventDefault();
                     e.stopPropagation();
                     return false;
@@ -136,29 +163,33 @@ def screenshot():
     return Response(out.getvalue(), mimetype="image/jpeg")
 
 
-@app.route("/mouse/move")
-def move_mouse():
-    x = int(request.args.get("x", "0"))
-    y = int(request.args.get("y", "0"))
-    with lock:
-        simulate_pointer_events(evaluator, PointerMove(x, y), timeout_ms=TIMEOUT)
-    return "ok"
+@app.route("/input")
+def simulate_input():
+    event_data = json.loads(request.args.get("events"))
+    events = []
 
+    def flush_events():
+        if not len(events):
+            return
+        with lock:
+            if isinstance(events[0], KeyEvent):
+                simulate_key_events(evaluator, *events, timeout_ms=TIMEOUT)
+            else:
+                simulate_pointer_events(evaluator, *events, timeout_ms=TIMEOUT)
+        events.clear()
 
-@app.route("/mouse/press")
-def press_mouse():
-    pressed = request.args.get("pressed", "0") == "1"
-    with lock:
-        simulate_pointer_events(evaluator, PointerButton(pressed), timeout_ms=TIMEOUT)
-    return "ok"
-
-
-@app.route("/keyboard")
-def keyboard():
-    keyval = int(request.args.get("keyval", ""))
-    pressed = request.args.get("pressed", "0") == "1"
-    with lock:
-        simulate_key_events(evaluator, KeyEvent(pressed, keyval=keyval), timeout_ms=TIMEOUT)
+    for obj in event_data:
+        if "mousemove" in obj:
+            evt = PointerMove(obj["mousemove"]["x"], obj["mousemove"]["y"])
+        if "mousebutton" in obj:
+            evt = PointerButton(obj["mousebutton"]["pressed"])
+        elif "keypress" in obj:
+            evt = KeyEvent(obj["pressed"], obj["keyval"])
+        if len(events) and isinstance(evt, KeyEvent) != isinstance(events[0], KeyEvent):
+            # Cannot intertwine mouse and keyboard events.
+            flush_events()
+        events.append(evt)
+    flush_events()
     return "ok"
 
 
