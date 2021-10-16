@@ -73,14 +73,17 @@ class Evaluator(GObject.Object):
             });
             """
         )
+        t1 = int(time.time()) * 1000
         self(
             code,
             timeout_ms=timeout_ms,
             _waitName=wait_name,
             _waitTimeout=timeout_ms + 1000,  # buffer time before cleanup
         )
-        t1 = time.time()
-        while time.time() < t1 + timeout_ms / 1000:
+        while True:
+            remaining_time = t1 + timeout_ms - int(time.time()) * 1000
+            if remaining_time < 0:
+                break
             check_code = """
             const res = global[_waitName];
             if (res.status) {
@@ -88,7 +91,7 @@ class Evaluator(GObject.Object):
             }
             res;
             """
-            out = self(check_code, _waitName=wait_name)
+            out = self(check_code, timeout_ms=remaining_time, _waitName=wait_name)
             if out["status"] == 1:
                 return out["result"]
             elif out["status"] == 2:
