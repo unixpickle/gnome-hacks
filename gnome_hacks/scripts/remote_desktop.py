@@ -219,6 +219,7 @@ def keycode_to_keyval(x):
         18: KeyVal.KEY_Alt_L,
         32: KeyVal.KEY_space,
         46: KeyVal.KEY_Delete,
+        186: KeyVal.KEY_semicolon,
         187: KeyVal.KEY_equal,
         188: KeyVal.KEY_comma,
         189: KeyVal.KEY_minus,
