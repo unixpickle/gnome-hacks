@@ -217,6 +217,7 @@ def keycode_to_keyval(x):
         16: KeyVal.KEY_Shift_L,
         17: KeyVal.KEY_Control_L,
         18: KeyVal.KEY_Alt_L,
+        32: KeyVal.KEY_space,
         46: KeyVal.KEY_Delete,
         187: KeyVal.KEY_equal,
         189: KeyVal.KEY_minus,
