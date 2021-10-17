@@ -9,6 +9,7 @@ from threading import Lock
 from flask import Flask, Response, request
 from gnome_hacks.evaluator import Evaluator
 from gnome_hacks.keyboard import KeyEvent, simulate_key_events
+from gnome_hacks.keysyms import KeyVal
 from gnome_hacks.pointer import PointerButton, PointerMove, simulate_pointer_events
 from gnome_hacks.screenshot import capture_screenshot
 from PIL import Image
@@ -144,7 +145,14 @@ def index():
                     }
                 }
             }
-            refreshLoop().then(() => null);
+
+            function handleKeyEvent(e, pressed) {
+                runEvents([{keypress: {keycode: e.which, pressed: pressed}}]);
+            }
+
+            refreshLoop();
+            window.addEventListener('keydown', (e) => handleKeyEvent(e, true));
+            window.addEventListener('keyup', (e) => handleKeyEvent(e, false));
             </script>
         </body>
     </html>
@@ -184,13 +192,35 @@ def simulate_input():
         if "mousebutton" in obj:
             evt = PointerButton(obj["mousebutton"]["pressed"])
         elif "keypress" in obj:
-            evt = KeyEvent(obj["pressed"], obj["keyval"])
+            evt = KeyEvent(
+                obj["keypress"]["pressed"],
+                keycode_to_keyval(obj["keypress"]["keycode"]),
+            )
         if len(events) and isinstance(evt, KeyEvent) != isinstance(events[0], KeyEvent):
             # Cannot intertwine mouse and keyboard events.
             flush_events()
         events.append(evt)
     flush_events()
     return "ok"
+
+
+def keycode_to_keyval(x):
+    caps = range(b"A"[0], b"Z"[0] + 1)
+    if x in caps:
+        return x + (b"a"[0] - b"A"[0])
+    tbl = {
+        16: KeyVal.KEY_Shift_L,
+        17: KeyVal.KEY_Control_L,
+        18: KeyVal.KEY_Alt_L,
+        187: KeyVal.KEY_equal,
+        189: KeyVal.KEY_minus,
+        191: KeyVal.KEY_slash,
+        192: KeyVal.KEY_grave,
+        219: KeyVal.KEY_bracketleft,
+        220: KeyVal.KEY_backslash,
+        221: KeyVal.KEY_bracketright,
+    }
+    return tbl.get(x, 0xFF00 + x)
 
 
 if __name__ == "__main__":
