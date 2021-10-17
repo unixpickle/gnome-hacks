@@ -220,12 +220,15 @@ def keycode_to_keyval(x):
         32: KeyVal.KEY_space,
         46: KeyVal.KEY_Delete,
         187: KeyVal.KEY_equal,
+        188: KeyVal.KEY_comma,
         189: KeyVal.KEY_minus,
+        190: KeyVal.KEY_period,
         191: KeyVal.KEY_slash,
         192: KeyVal.KEY_grave,
         219: KeyVal.KEY_bracketleft,
         220: KeyVal.KEY_backslash,
         221: KeyVal.KEY_bracketright,
+        222: KeyVal.KEY_apostrophe,
     }
     return tbl.get(x, 0xFF00 + x)
 
