@@ -148,6 +148,9 @@ def index():
 
             function handleKeyEvent(e, pressed) {
                 runEvents([{keypress: {keycode: e.which, pressed: pressed}}]);
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
             }
 
             refreshLoop();
