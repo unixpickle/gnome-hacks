@@ -211,6 +211,8 @@ def keycode_to_keyval(x):
     caps = range(b"A"[0], b"Z"[0] + 1)
     if x in caps:
         return x + (b"a"[0] - b"A"[0])
+    if x in range(b"0"[0], b"9" + 1):
+        return x
     tbl = {
         16: KeyVal.KEY_Shift_L,
         17: KeyVal.KEY_Control_L,
