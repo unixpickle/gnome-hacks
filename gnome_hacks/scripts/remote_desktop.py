@@ -41,27 +41,96 @@ def index():
         <body>
             <script>
             const REFRESH_RATE = 1000;
-            let CUR_SCREENSHOT = null;
 
-            let RUNNING_EVENT = false;
-            let EVENT_QUEUE = [];
+            class App {
+                constructor() {
+                    this.cur_screenshot = null;
+                    this.running_event = false;
+                    this.event_queue = [];
+                }
 
-            async function runEvents(events) {
-                if (RUNNING_EVENT) {
-                    events.forEach((e) => EVENT_QUEUE.push(e));
-                    return;
+                run() {
+                    this.refreshLoop();
+                    window.addEventListener('keydown', (e) => this.handleKeyEvent(e, true));
+                    window.addEventListener('keyup', (e) => this.handleKeyEvent(e, false));
                 }
-                RUNNING_EVENT = true;
-                const data = encodeURIComponent(JSON.stringify(events));
-                try {
-                    await fetch('/input?events=' + data);
-                } catch (e) {
+
+                async runEvents(events) {
+                    if (this.running_event) {
+                        events.forEach((e) => this.event_queue.push(e));
+                        return;
+                    }
+                    this.running_event = true;
+                    const data = encodeURIComponent(JSON.stringify(events));
+                    try {
+                        await fetch('/input?events=' + data);
+                    } catch (e) {
+                    }
+                    this.running_event = false;
+                    if (this.event_queue.length > 0) {
+                        const e = this.event_queue;
+                        this.event_queue = [];
+                        this.runEvents(e);
+                    }
                 }
-                RUNNING_EVENT = false;
-                if (EVENT_QUEUE.length > 0) {
-                    const e = EVENT_QUEUE;
-                    EVENT_QUEUE = [];
-                    runEvents(e);
+
+
+                showScreenshot(img) {
+                    const coordFn = mouseCoordFn(img);
+                    img.className = 'screenshot';
+                    if (this.cur_screenshot != null) {
+                        document.body.insertBefore(img, this.cur_screenshot);
+                        document.body.removeChild(this.cur_screenshot);
+                    } else {
+                        document.body.appendChild(img);
+                    }
+                    this.cur_screenshot = img;
+                    img.onmousemove = (e) => {
+                        this.runEvents([{mousemove: coordFn(e)}]);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    };
+                    img.onmousedown = (e) => {
+                        this.runEvents([
+                            {mousemove: coordFn(e)},
+                            {mousebutton: {pressed: true}},
+                        ]);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    };
+                    img.onmouseup = (e) => {
+                        this.runEvents([
+                            {mousemove: coordFn(e)},
+                            {mousebutton: {pressed: false}},
+                        ]);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    };
+                }
+
+                async refreshLoop() {
+                    while (true) {
+                        const lastTime = new Date().getTime();
+                        try {
+                            const result = await loadScreenshotAsync();
+                            this.showScreenshot(result);
+                            const curTime = new Date().getTime();
+                            await sleepAsync(REFRESH_RATE + lastTime - curTime);
+                        } catch (e) {
+                            await sleepAsync(1000);
+                            continue;
+                        }
+                    }
+                }
+
+                handleKeyEvent(e, pressed) {
+                    this.runEvents([{keypress: {keycode: e.which, pressed: pressed}}]);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
                 }
             }
 
@@ -95,67 +164,8 @@ def index():
                 };
             }
 
-            function showScreenshot(img) {
-                const coordFn = mouseCoordFn(img);
-                img.className = 'screenshot';
-                if (CUR_SCREENSHOT != null) {
-                    document.body.insertBefore(img, CUR_SCREENSHOT);
-                    document.body.removeChild(CUR_SCREENSHOT);
-                } else {
-                    document.body.appendChild(img);
-                }
-                CUR_SCREENSHOT = img;
-                img.onmousemove = (e) => {
-                    runEvents([{mousemove: coordFn(e)}]);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                };
-                img.onmousedown = (e) => {
-                    runEvents([
-                        {mousemove: coordFn(e)},
-                        {mousebutton: {pressed: true}},
-                    ]);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                };
-                img.onmouseup = (e) => {
-                    runEvents([
-                        {mousemove: coordFn(e)},
-                        {mousebutton: {pressed: false}},
-                    ]);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                };
-            }
-
-            async function refreshLoop() {
-                while (true) {
-                    const lastTime = new Date().getTime();
-                    try {
-                        const result = await loadScreenshotAsync();
-                        showScreenshot(result);
-                        const curTime = new Date().getTime();
-                        await sleepAsync(REFRESH_RATE + lastTime - curTime);
-                    } catch (e) {
-                        await sleepAsync(1000);
-                        continue;
-                    }
-                }
-            }
-
-            function handleKeyEvent(e, pressed) {
-                runEvents([{keypress: {keycode: e.which, pressed: pressed}}]);
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-
-            refreshLoop();
-            window.addEventListener('keydown', (e) => handleKeyEvent(e, true));
-            window.addEventListener('keyup', (e) => handleKeyEvent(e, false));
+            window.app = new App();
+            window.app.run();
             </script>
         </body>
     </html>
