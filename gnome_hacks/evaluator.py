@@ -11,24 +11,31 @@ class Evaluator(GObject.Object):
     A connection to the GNOME shell for evaluating scripts.
     """
 
-    def __init__(self):
+    def __init__(self, timeout_ms: int = 10000, proxy: Any = None):
         super().__init__()
-        self.proxy = Gio.DBusProxy.new_for_bus_sync(
-            Gio.BusType.SESSION,
-            Gio.DBusProxyFlags.NONE,
-            None,
-            "org.gnome.Shell",
-            "/org/gnome/Shell",
-            "org.gnome.Shell",
+        self.timeout_ms = timeout_ms
+        self.proxy = (
+            proxy
+            if proxy is not None
+            else Gio.DBusProxy.new_for_bus_sync(
+                Gio.BusType.SESSION,
+                Gio.DBusProxyFlags.NONE,
+                None,
+                "org.gnome.Shell",
+                "/org/gnome/Shell",
+                "org.gnome.Shell",
+            )
         )
 
-    def __call__(self, script: str, raw=False, timeout_ms: int = 1000, **kwargs) -> Any:
+    def with_timeout(self, timeout_ms: int) -> Any:
+        return Evaluator(timeout_ms=timeout_ms, proxy=self.proxy)
+
+    def __call__(self, script: str, raw=False, **kwargs) -> Any:
         """
         Evaluate JavaScript code inside the GNOME shell.
 
         :param script: JavaScript code to execute.
         :param raw: if True, don't attempt to parse the output as JSON.
-        :param timeout_ms: the timeout for the DBus call.;
         :param kwargs: extra variables to pass to the script. These must be
                        JSON serializable.
         """
@@ -37,7 +44,7 @@ class Evaluator(GObject.Object):
             "Eval",
             GLib.Variant.new_tuple(GLib.Variant.new_string(wrapped_script)),
             Gio.DBusCallFlags.NO_AUTO_START,
-            timeout_ms,
+            self.timeout_ms,
         ).unpack()
         if not status:
             raise EvaluatorJavaScriptError(result)
@@ -47,9 +54,7 @@ class Evaluator(GObject.Object):
             return None
         return json.loads(result)
 
-    def call_async(
-        self, script: str, timeout_ms: int = 2000, poll_interval: int = 50, **kwargs
-    ) -> Any:
+    def call_async(self, script: str, poll_interval: int = 50, **kwargs) -> Any:
         """
         Evaluate code inside an async function and wait for the results.
         """
@@ -73,15 +78,14 @@ class Evaluator(GObject.Object):
             });
             """
         )
-        t1 = int(time.time()) * 1000
+        t1 = int(time.time() * 1000)
         self(
             code,
-            timeout_ms=timeout_ms,
             _waitName=wait_name,
-            _waitTimeout=timeout_ms + 1000,  # buffer time before cleanup
+            _waitTimeout=self.timeout_ms + 1000,  # buffer time before cleanup
         )
         while True:
-            remaining_time = t1 + timeout_ms - int(time.time()) * 1000
+            remaining_time = t1 + self.timeout_ms - int(time.time() * 1000)
             if remaining_time < 0:
                 break
             check_code = """
@@ -91,7 +95,7 @@ class Evaluator(GObject.Object):
             }
             res;
             """
-            out = self(check_code, timeout_ms=remaining_time, _waitName=wait_name)
+            out = self(check_code, _waitName=wait_name)
             if out["status"] == 1:
                 return out["result"]
             elif out["status"] == 2:

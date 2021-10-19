@@ -29,9 +29,7 @@ class PointerButton:
         )
 
 
-def simulate_pointer_events(
-    e: Evaluator, *events: Union[PointerMove, PointerButton], timeout_ms=2000
-):
+def simulate_pointer_events(e: Evaluator, *events: Union[PointerMove, PointerButton]):
     code = (
         """
     const Clutter = imports.gi.Clutter;
@@ -73,8 +71,7 @@ def simulate_pointer_events(
     )
     total_delay = sum(x.delay_ms if isinstance(x, PointerMove) else 0 for x in events)
     delay = total_delay
-    e.call_async(
+    e.with_timeout(e.timeout_ms + delay).call_async(
         code,
-        timeout_ms=timeout_ms + delay,
         events=[x.encode_pointer_event() for x in events],
     )

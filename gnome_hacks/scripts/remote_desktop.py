@@ -18,8 +18,6 @@ app = Flask(__name__)
 lock = Lock()
 evaluator = Evaluator()
 
-TIMEOUT = 10000
-
 
 @app.route("/")
 def index():
@@ -177,7 +175,7 @@ def screenshot():
     quality = int(request.args.get("q", "50"))
 
     with lock:
-        png_data = capture_screenshot(evaluator, timeout_ms=TIMEOUT)
+        png_data = capture_screenshot(evaluator)
     img = Image.open(io.BytesIO(png_data))
     out = io.BytesIO()
     img.convert("RGB").save(out, format="jpeg", quality=quality)
@@ -194,9 +192,9 @@ def simulate_input():
             return
         with lock:
             if isinstance(events[0], KeyEvent):
-                simulate_key_events(evaluator, *events, timeout_ms=TIMEOUT)
+                simulate_key_events(evaluator, *events)
             else:
-                simulate_pointer_events(evaluator, *events, timeout_ms=TIMEOUT)
+                simulate_pointer_events(evaluator, *events)
         events.clear()
 
     for obj in event_data:
