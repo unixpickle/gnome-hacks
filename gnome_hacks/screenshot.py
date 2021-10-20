@@ -2,6 +2,7 @@ import base64
 import os
 import time
 import uuid
+from typing import Optional, Tuple
 
 from .evaluator import Evaluator, EvaluatorJavaScriptError
 
@@ -9,16 +10,15 @@ from .evaluator import Evaluator, EvaluatorJavaScriptError
 def capture_screenshot(
     e: Evaluator,
     include_cursor: bool = True,
+    area: Optional[Tuple[int, int, int, int]] = None,
     **kwargs,
 ) -> bytes:
     """
     Capture a screenshot as PNG data.
 
-    Only one screenshot operation can take place at once.
-    Otherwise, an exception will be thrown.
-
     :param e: the script evaluator.
     :param include_cursor: if True, render the cursor in the screenshot.
+    :param area: if specified, the (x, y, width, height) to capture.
     :param kwargs: arguments to e.call_promise().
     :return: PNG image data of the screenshot.
     """
@@ -33,11 +33,11 @@ def capture_screenshot(
         if (use_file) {
             output = use_file;
         } else {
-            output = Gio.MemoryOutputStream.new_resizable()
+            output = Gio.MemoryOutputStream.new_resizable();
         }
 
         if (ss.screenshot_finish) {
-            ss.screenshot(include_cursor, output, (_, async_result) => {
+            const cb = (_, async_result) => {
                 try {
                     const result = ss.screenshot_finish(async_result);
                     if (use_file) {
@@ -51,7 +51,12 @@ def capture_screenshot(
                 } catch (e) {
                     reject(e);
                 }
-            });
+            };
+            if (area) {
+                ss.screenshot_area(area[0], area[1], area[2], area[3], output, cb);
+            } else {
+                ss.screenshot(include_cursor, output, cb);
+            }
         } else {
             if (!use_file) {
                 // This is an older branch of gnome-shell that doesn't use GIO's async pattern.
@@ -59,19 +64,26 @@ def capture_screenshot(
                 reject('must use filename');
                 return;
             }
-            ss.screenshot(include_cursor, output, (_, success, _area, filename) => {
+            const cb = (_, success, _area, filename) => {
                 if (!success) {
                     reject('screeshot failed');
                 } else {
                     resolve(filename);
                 }
-            });
+            };
+            if (area) {
+                ss.screenshot_area(area[0], area[1], area[2], area[3], output, cb);
+            } else {
+                ss.screenshot(include_cursor, output, cb);
+            }
         }
     });
     """
     try:
         return base64.b64decode(
-            e.call_async(code, include_cursor=include_cursor, use_file=None, **kwargs)
+            e.call_async(
+                code, include_cursor=include_cursor, area=area, use_file=None, **kwargs
+            )
         )
     except EvaluatorJavaScriptError as exc:
         if (
