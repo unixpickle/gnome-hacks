@@ -11,6 +11,8 @@ def capture_screenshot(
     e: Evaluator,
     include_cursor: bool = True,
     area: Optional[Tuple[int, int, int, int]] = None,
+    window: bool = False,
+    include_frame: bool = True,
     **kwargs,
 ) -> bytes:
     """
@@ -19,6 +21,8 @@ def capture_screenshot(
     :param e: the script evaluator.
     :param include_cursor: if True, render the cursor in the screenshot.
     :param area: if specified, the (x, y, width, height) to capture.
+    :param window: if True, screenshot a specific window.
+    :param include_frame: if True, capture the frame of a window screenshot.
     :param kwargs: arguments to e.call_promise().
     :return: PNG image data of the screenshot.
     """
@@ -54,6 +58,8 @@ def capture_screenshot(
             };
             if (area) {
                 ss.screenshot_area(area[0], area[1], area[2], area[3], output, cb);
+            } else if (grab_window) {
+                ss.screenshot_window(include_frame, include_cursor, output, cb);
             } else {
                 ss.screenshot(include_cursor, output, cb);
             }
@@ -73,6 +79,8 @@ def capture_screenshot(
             };
             if (area) {
                 ss.screenshot_area(area[0], area[1], area[2], area[3], output, cb);
+            } else if (grab_window) {
+                ss.screenshot_window(include_frame, include_cursor, output, cb);
             } else {
                 ss.screenshot(include_cursor, output, cb);
             }
@@ -82,7 +90,13 @@ def capture_screenshot(
     try:
         return base64.b64decode(
             e.call_async(
-                code, include_cursor=include_cursor, area=area, use_file=None, **kwargs
+                code,
+                include_cursor=include_cursor,
+                area=area,
+                grab_window=window,
+                include_frame=include_frame,
+                use_file=None,
+                **kwargs,
             )
         )
     except EvaluatorJavaScriptError as exc:
