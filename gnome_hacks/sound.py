@@ -20,3 +20,17 @@ def play_bell_sound(e: Evaluator):
     );
     """
     return e(code)
+
+
+def play_sound(e: Evaluator, path: str, description: str = ""):
+    code = """
+    const Gio = imports.gi.Gio;
+    const disp = global.get_display();
+    const file = Gio.File.new_for_path(path);
+    disp.get_sound_player().play_from_file(
+        file,
+        description,
+        null,
+    );
+    """
+    return e(code, path=path, description=description)
